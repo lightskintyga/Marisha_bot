@@ -1,6 +1,6 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types, executor
-
+import Values
 
 TOKEN = None
 
@@ -11,39 +11,10 @@ with open('token.txt') as file:
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
+# весь код будет разбит на несколько файлов, просто гораздо удобнее было писать все в одном месте,
+# ибо есть зависимость от определенных блоков.
+# так же будут в каких-то блоках заменю вложенные декораторы на стейты. Все изменения будут сделаны до основной защиты.
 
-class Values:
-    checker = 0
-    correct_answers = 0
-    written_attempts = 3
-    electronics_count = 0
-    viewing_ivt_block = 0
-    viewing_applied_inf_block = 0
-    viewing_software_engineering_block = 0
-    viewing_information_security_block = 0
-    viewing_electronics_block = 0
-    viewing_management_block = 0
-    viewing_production_technology_block = 0
-    viewing_communication_systems_block = 0
-    viewing_construction_block = 0
-    viewing_radio_block = 0
-    quiz_ivt_block = 0
-    quiz_applied_inf_block = 0
-    quiz_software_engineering_block = 0
-    quiz_information_security_block = 0
-    quiz_electronics_block = 0
-    quiz_management_block = 0
-    quiz_production_technology_block = 0
-    quiz_communication_systems_block = 0
-    quiz_construction_block = 0
-    quiz_radio_block = 0
-    quiz_ivt_block_next_task = 0
-    quiz_applied_inf_block_next_task = 0
-    quiz_software_engineering_block_next_task = 0
-    quiz_information_security_block_next_task = 0
-    quiz_electronics_block_next_task = 0
-    quiz_management_block_next_task = 0
-    quiz_production_technology_block_next_task = 0
 
 
 @dp.message_handler(commands=['start'])
