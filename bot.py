@@ -1,7 +1,6 @@
 import asyncio
 import sqlite3
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.dispatcher.filters import state
 
 TOKEN = None
 
@@ -9,11 +8,56 @@ with open('token.txt') as file:
     TOKEN = file.read().strip()
     file.close()
 
+with open('admin.txt') as admin_file:
+    admin_id = admin_file.read().strip()
+    admin_file.close()
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
 connect = sqlite3.connect('data.db')
 cursor = connect.cursor()
+
+
+@dp.message_handler(commands=['admin', 'back'])
+async def admin_panel(msg: types.Message):
+    people_id = msg.chat.id
+    if admin_id == str(people_id):
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button_1 = types.KeyboardButton('Общее количество пользователей')
+        button_2 = types.KeyboardButton('Общий зачет')
+        keyboard.row(button_1)
+        keyboard.row(button_2)
+
+        await msg.answer('Привет, админ! Какую информацию тебе вывести?', reply_markup=keyboard)
+
+        if msg.text == 'Общий зачет':
+            pass
+
+
+@dp.message_handler(lambda msg: msg.text == 'Общее количество пользователей')
+async def get_users_count(msg: types.Message):
+    people_id = msg.chat.id
+    if admin_id == str(people_id):
+        cursor.execute('SELECT COUNT(*) FROM data')
+        count = cursor.fetchone()[0]
+
+        await msg.answer('Общее количество пользователей: {}'.format(count))
+
+        await msg.answer('/back, чтобы вернуться в админку')
+
+
+@dp.message_handler(lambda msg: msg.text == 'Общий зачет')
+async def get_users_top(msg: types.Message):
+    people_id = msg.chat.id
+    if admin_id == str(people_id):
+        cursor.execute('SELECT id, correct_answers FROM data ORDER BY correct_answers DESC')
+        top = cursor.fetchall()
+
+        await msg.answer('Топ пользователей: {}'.format(top))
+
+        await msg.answer('/back, чтобы вернуться в админку')
+
 
 @dp.message_handler(commands=['start'])
 async def start(msg: types.Message):
@@ -126,75 +170,85 @@ async def block_3(msg: types.Message):
         cursor.execute(f"UPDATE data SET checker = 2 WHERE id = {people_id}")
         connect.commit()
         mess = 'Ооокей, теперь Вы немного знаете об ИРИТ-РТФ.\n' \
-               'Но как же звучит один из его лозунгов, о котором рассказывается в видео?\n\nНапиши его!'
-        await msg.answer(mess, reply_markup=types.ReplyKeyboardRemove())
+               'Но как же звучит один из его лозунгов, о котором рассказывается в видео?' \
+               '\n\n<i>Выбери правильный ответ!</i>'
 
-        @dp.message_handler(lambda msg: msg.text == 'здесь ты выбираешь сам' or msg.text == 'здесь ты выбираешь сам!'
-                                        or msg.text == 'здесь ты выбираешь сам.' or msg.text == 'Здесь ты выбираешь сам'
-                                        or msg.text == 'Здесь ты выбираешь сам!' or msg.text == 'Здесь ты выбираешь сам.')
-        async def block_4(msg: types.Message):
-            people_id = msg.chat.id
-            cursor.execute(f"SELECT checker FROM data WHERE id = {people_id}")
-            checker = cursor.fetchone()[0]
-            if checker == 2:
-                cursor.execute(f"UPDATE data SET written_attempts = 3 WHERE id = {people_id}")
-                connect.commit()
-
-                cursor.execute(f"UPDATE data SET checker = 3 WHERE id = {people_id}")
-                connect.commit()
-
-                cursor.execute(f"UPDATE data SET correct_answers = correct_answers + 1 WHERE id = {people_id}")
-                connect.commit()
-
-                cursor.execute(f"SELECT correct_answers FROM data WHERE id = {people_id}")
-                correct_answers = cursor.fetchone()[0]
-                mess = 'Поздравляю, ты ответил верно! Количество очков на данный момент: <b>{}</b>\n\nКстати, ' \
-                       'используя команду /points, ты всегда можешь узнать текущее количество баллов!' \
-                    .format(correct_answers)
-                await msg.answer(mess, parse_mode='html')
-
-                keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-                button = types.KeyboardButton('Далее')
-                keyboard.add(button)
-
-                await msg.answer('Нажми "Далее", чтобы продолжить наше путешествие 🌠', reply_markup=keyboard)
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button_1 = types.KeyboardButton('Думай, делай, достигай!')
+        button_2 = types.KeyboardButton('Здесь ты выбираешь сам!')
+        button_3 = types.KeyboardButton('Движение к успеху!')
+        keyboard.row(button_1)
+        keyboard.row(button_2)
+        keyboard.row(button_3)
+        await msg.answer(mess, reply_markup=keyboard, parse_mode='html')
 
 
-        @dp.message_handler(lambda msg: msg.text != 'здесь ты выбираешь сам' and msg.text != 'здесь ты выбираешь сам!'
-                                        and msg.text != 'здесь ты выбираешь сам.' and msg.text != 'Здесь ты выбираешь сам'
-                                        and msg.text != 'Здесь ты выбираешь сам!' and msg.text != 'Здесь ты выбираешь сам.')
-        async def block_4_wrong(msg: types.Message):
-            people_id = msg.chat.id
-            cursor.execute(f"SELECT checker FROM data WHERE id = {people_id}")
-            checker = cursor.fetchone()[0]
+@dp.message_handler(lambda msg: msg.text == 'Думай, делай, достигай!')
+async def block_4_1(msg: types.Message):
+    people_id = msg.chat.id
+    cursor.execute(f"SELECT checker FROM data WHERE id = {people_id}")
+    checker = cursor.fetchone()[0]
+    if checker == 2:
+        cursor.execute(f"UPDATE data SET checker = 3 WHERE id = {people_id}")
+        connect.commit()
 
-            cursor.execute(f"SELECT written_attempts FROM data WHERE id = {people_id}")
-            written_attempts = cursor.fetchone()[0]
-            if checker == 2 and written_attempts == 3:
-                cursor.execute(f"UPDATE data SET written_attempts = written_attempts - 1 WHERE id = {people_id}")
-                connect.commit()
-                await msg.answer('Неправильный ответ, попробуй ещё раз! У тебя осталось <b>2</b> попытки.',
-                                 parse_mode='html')
-            elif checker == 2 and written_attempts == 2:
-                cursor.execute(f"UPDATE data SET written_attempts = written_attempts - 2 WHERE id = {people_id}")
-                connect.commit()
-                await msg.answer('Неправильный ответ. Хорошо обдумай следующий вариант, '
-                                 'ведь у тебя осталась <b>последняя</b> попытка!',
-                                 parse_mode='html')
-            elif checker == 2 and written_attempts == 0:
-                cursor.execute(f"UPDATE data SET checker = 3 WHERE id = {people_id}")
-                connect.commit()
+        await msg.answer('К сожалению, ты ответил неверно. Правильный ответ: '
+                         '<b>Здесь ты выбираешь сам!</b>'
+                         '\n\nИспользуя команду /points, ты всегда можешь узнать, '
+                         'сколько у тебя баллов на данный момент.', parse_mode='html')
 
-                cursor.execute(f"UPDATE data SET written_attempts = 3 WHERE id = {people_id}")
-                connect.commit()
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button = types.KeyboardButton('Далее')
+        keyboard.add(button)
 
-                await msg.answer('К сожалению, попытки закончились. Правильный ответ: '
-                                 '<b>здесь ты выбираешь сам</b>.', parse_mode='html')
-                keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-                button = types.KeyboardButton('Далее')
-                keyboard.add(button)
+        await msg.answer('Нажми "Далее", чтобы продолжить наше путешествие 🌠', reply_markup=keyboard)
 
-                await msg.answer('Нажми "Далее", чтобы продолжить наше путешествие 🌠', reply_markup=keyboard)
+
+@dp.message_handler(lambda msg: msg.text == 'Здесь ты выбираешь сам!')
+async def block_4_2(msg: types.Message):
+    people_id = msg.chat.id
+    cursor.execute(f"SELECT checker FROM data WHERE id = {people_id}")
+    checker = cursor.fetchone()[0]
+    if checker == 2:
+        cursor.execute(f"UPDATE data SET checker = 3 WHERE id = {people_id}")
+        connect.commit()
+
+        cursor.execute(f"UPDATE data SET correct_answers = correct_answers + 1 WHERE id = {people_id}")
+        connect.commit()
+
+        cursor.execute(f"SELECT correct_answers FROM data WHERE id = {people_id}")
+        correct_answers = cursor.fetchone()[0]
+        mess = 'Поздравляю, ты ответил верно! Количество очков на данный момент: <b>{}</b>\n\nКстати, ' \
+               'используя команду /points, ты всегда можешь узнать текущее количество баллов!' \
+            .format(correct_answers)
+        await msg.answer(mess, parse_mode='html')
+
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button = types.KeyboardButton('Далее')
+        keyboard.add(button)
+
+        await msg.answer('Нажми "Далее", чтобы продолжить наше путешествие 🌠', reply_markup=keyboard)
+
+
+@dp.message_handler(lambda msg: msg.text == 'Движение к успеху!')
+async def block_4_3(msg: types.Message):
+    people_id = msg.chat.id
+    cursor.execute(f"SELECT checker FROM data WHERE id = {people_id}")
+    checker = cursor.fetchone()[0]
+    if checker == 2:
+        cursor.execute(f"UPDATE data SET checker = 3 WHERE id = {people_id}")
+        connect.commit()
+
+        await msg.answer('К сожалению, ты ответил неверно. Правильный ответ: '
+                         '<b>Здесь ты выбираешь сам!</b>'
+                         '\n\nИспользуя команду /points, ты всегда можешь узнать, '
+                         'сколько у тебя баллов на данный момент.', parse_mode='html')
+
+        keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        button = types.KeyboardButton('Далее')
+        keyboard.add(button)
+
+        await msg.answer('Нажми "Далее", чтобы продолжить наше путешествие 🌠', reply_markup=keyboard)
 
 
 @dp.message_handler(lambda msg: msg.text == 'Далее')
@@ -376,7 +430,7 @@ async def calling_list_of_destinations(msg: types.Message):
         await msg.answer('Поздравляем, абитуриент, ты успешно справился с нашим небольшим квестом! '
                          '\n\nНадеемся, что мы помогли тебе определиться с выбором направления! '
                          '\n\nЖдем тебя в стенах Уральского Федерального ❤️'
-                         '\n\nОбщее количество набранных тобою очков за этот квест: <b>{}</b>'.format(correct_answers),
+                         '\n\nОбщее количество набранных тобою баллов за этот квест: <b>{}</b>'.format(correct_answers),
                          parse_mode='html')
 
 
